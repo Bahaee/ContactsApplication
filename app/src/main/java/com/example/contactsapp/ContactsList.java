@@ -25,15 +25,11 @@ import java.util.LinkedList;
 
 public class ContactsList extends AppCompatActivity implements View.OnClickListener {
 
-    FloatingActionButton fab_add;
-    RecyclerView contactsRecycler;
-    EditText barreRecherche;
-    FirebaseFirestore db;
-    FirebaseAuth mAuth;
-    MyAdapter myAdapter;
-    LinkedList<Contact> contacts;
-    ProgressDialog mProgressDialog;
-    ContactDao cda;
+    private RecyclerView contactsRecycler;
+    private EditText searchEditText;
+    private MyAdapter myAdapter;
+    private LinkedList<Contact> contacts;
+    private ContactDao contactDao;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,103 +37,66 @@ public class ContactsList extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_liste_contacts);
 
         contactsRecycler = findViewById(R.id.list_contacts);
-        barreRecherche = findViewById(R.id.hint);
-        fab_add = findViewById(R.id.fab_add);
-        fab_add.setOnClickListener(this);
-        db = FirebaseFirestore.getInstance();
-        mAuth = FirebaseAuth.getInstance();
+        searchEditText = findViewById(R.id.hint);
+        findViewById(R.id.fab_add).setOnClickListener(this);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         contactsRecycler.setLayoutManager(layoutManager);
 
-        barreRecherche.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {}
+        contactDao = new ContactDao();
 
+        searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (s.length() == 0) {
-                    myAdapter = new MyAdapter(contacts, ContactsList.this);
-                    contactsRecycler.setAdapter(myAdapter);
-                } else {
-                    LinkedList<Contact> filteredContacts = filterContacts(contacts, s.toString());
-                    myAdapter = new MyAdapter(filteredContacts, ContactsList.this);
-                    contactsRecycler.setAdapter(myAdapter);
-                }
+                filterContacts(s.toString());
             }
 
-            private LinkedList<Contact> filterContacts(LinkedList<Contact> contacts, String query) {
-                LinkedList<Contact> filteredList = new LinkedList<>();
-
-                for (Contact contact : contacts) {
-                    String fullName = contact.getFirstNameContact() + " " + contact.getLastNameContact();
-                    if (fullName.toLowerCase().startsWith(query.toLowerCase())) {
-                        filteredList.add(contact);
-                    }
-                }
-
-                return filteredList;
+            @Override
+            public void afterTextChanged(Editable s) {
             }
         });
 
-        cda = new ContactDao();
         getContacts();
     }
 
-    void getContacts() {
-        showProgressDialog();
-
-        cda.getAllContacts(new ContactDao.OnContactsLoadedListener() {
+    private void getContacts() {
+        contactDao.getAllContacts(new ContactDao.OnContactsLoadedListener() {
             @Override
-            public void onContactsLoaded(LinkedList<Contact> contacts) {
-                ContactsList.this.contacts = contacts;
-
+            public void onContactsLoaded(LinkedList<Contact> loadedContacts) {
+                contacts = loadedContacts;
                 myAdapter = new MyAdapter(contacts, ContactsList.this);
                 contactsRecycler.setAdapter(myAdapter);
-
-                hideProgressDialog();
             }
         });
     }
 
-    private LinkedList<Contact> filterContacts(LinkedList<Contact> contacts, String query) {
-        LinkedList<Contact> filteredList = new LinkedList<>();
+    private void filterContacts(String query) {
+        LinkedList<Contact> filteredContacts = new LinkedList<>();
 
-        for (Contact contact : contacts) {
-            String fullName = contact.getFirstNameContact() + " " + contact.getLastNameContact();
-            if (fullName.toLowerCase().contains(query.toLowerCase())) {
-                filteredList.add(contact);
+        if (query.isEmpty()) {
+            filteredContacts.addAll(contacts);
+        } else {
+            String lowerCaseQuery = query.toLowerCase();
+            for (Contact contact : contacts) {
+                String fullName = contact.getFirstNameContact() + " " + contact.getLastNameContact();
+                if (fullName.toLowerCase().startsWith(lowerCaseQuery)) {
+                    filteredContacts.add(contact);
+                }
             }
         }
 
-        return filteredList;
+        myAdapter = new MyAdapter(filteredContacts, ContactsList.this);
+        contactsRecycler.setAdapter(myAdapter);
     }
 
     @Override
-    public void onClick(View view) {
-        if (view.getId() == R.id.fab_add) {
-            Intent i = new Intent(this, ContactDetails.class);
-            startActivity(i);
-        }
-    }
-
-    @SuppressLint("StaticFieldLeak")
-    private void showProgressDialog() {
-        if (mProgressDialog == null) {
-            mProgressDialog = new ProgressDialog(this);
-            mProgressDialog.setMessage("Loading Contacts...");
-            mProgressDialog.setIndeterminate(true);
-        }
-
-        mProgressDialog.show();
-    }
-
-    private void hideProgressDialog() {
-        if (mProgressDialog != null && mProgressDialog.isShowing()) {
-            mProgressDialog.dismiss();
+    public void onClick(View v) {
+        if (v.getId() == R.id.fab_add) {
+            startActivity(new Intent(this, ContactDetails.class));
         }
     }
 }

@@ -87,6 +87,15 @@
                     android:drawablePadding="8dp"
                     android:textColor="@color/blue_grey"/>
                 <Button
+                    android:id="@+id/add_image_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:textSize="18sp"
+                    android:layout_marginTop="12dp"
+                    android:backgroundTint="@color/gold"
+                    app:cornerRadius = "20dp"
+                    android:text="Add Image" />
+                <Button
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:text="Add"
